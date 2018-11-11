@@ -122,6 +122,9 @@
           <property name="maximum">
            <double>100.000000000000000</double>
           </property>
+          <property name="singleStep">
+           <double>0.250000000000000</double>
+          </property>
          </widget>
         </item>
         <item row="1" column="0">
@@ -187,6 +190,43 @@
           </property>
           <property name="singleStep">
            <double>0.500000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="0">
+         <widget class="QLabel" name="shadowHeightOffsetLabel">
+          <property name="text">
+           <string>Shadow height offset</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="1">
+         <widget class="QDoubleSpinBox" name="shadowHeightOffsetDoubleSpinBox">
+          <property name="suffix">
+           <string> cm</string>
+          </property>
+          <property name="minimum">
+           <double>-10.000000000000000</double>
+          </property>
+          <property name="maximum">
+           <double>100.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="shadowOffsetFromObstructionLabel">
+          <property name="text">
+           <string>Shadow offset from obstruction:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="1">
+         <widget class="QDoubleSpinBox" name="shadowOffsetFromObstructionDoubleSpinBox">
+          <property name="suffix">
+           <string> cm</string>
+          </property>
+          <property name="maximum">
+           <double>100.000000000000000</double>
           </property>
          </widget>
         </item>

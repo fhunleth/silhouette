@@ -20,13 +20,19 @@ private slots:
 
     void on_actionSave_obstruction_triggered();
     void shadowSizeChanged(double v);
+    void obstructionSizeChanged(double v);
+    void lightDistanceFromWallChanged(double v);
+    void lightHeightChanged(double v);
+    void shadowHeightOffsetChanged(double v);
+    void shadowWallOffsetChanged(double v);
 private:
     void recalculate();
 
 private:
     Ui::MainWindow *ui;
 
-    QImage silouetteImage_;
+    QImage shadowImage_;
+    QImage obstructionImage_;
 
     int obstructionResolutionWidth_;
     int obstructionResolutionHeight_;

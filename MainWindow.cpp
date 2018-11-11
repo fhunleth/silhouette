@@ -29,8 +29,15 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->obstructionSizeCmDoubleSpinBox->setValue(obstructionHeightCm_);
     ui->lightDistanceFromWallCmDoubleSpinBox->setValue(lightXCm_);
     ui->lightHeightCmDoubleSpinBox->setValue(lightYCm_);
+    ui->shadowHeightOffsetDoubleSpinBox->setValue(shadowYCm_);
+    ui->shadowOffsetFromObstructionDoubleSpinBox->setValue(shadowZCm_ - shadowWidthCm_ - obstructionZCm_);
 
     connect(ui->silhouetteSizeCmDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(shadowSizeChanged(double)));
+    connect(ui->obstructionSizeCmDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(obstructionSizeChanged(double)));
+    connect(ui->lightDistanceFromWallCmDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(lightDistanceFromWallChanged(double)));
+    connect(ui->lightHeightCmDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(lightHeightChanged(double)));
+    connect(ui->shadowHeightOffsetDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(shadowHeightOffsetChanged(double)));
+    connect(ui->shadowOffsetFromObstructionDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(shadowWallOffsetChanged(double)));
 
     setSilouette(QImage(":res/polar-bear-silhouette.png"));
 }
@@ -49,19 +56,21 @@ void MainWindow::setSilouette(const QImage &image)
     p.drawImage((side - image.width()) / 2, side - image.height(), image);
     p.end();
 
-    silouetteImage_ = squareImage;
-    ui->silhouetteImage->setPixmap(QPixmap::fromImage(silouetteImage_));
+    shadowImage_ = squareImage;
+    ui->silhouetteImage->setPixmap(QPixmap::fromImage(shadowImage_));
     recalculate();
 }
 
 void MainWindow::on_actionLoad_image_triggered()
 {
     QString filename = QFileDialog::getOpenFileName(this,
-          tr("Open Silouette Image"), QString(), tr("Image Files (*.png *.jpg *.bmp)"));
+          tr("Open Shadow Image"), QString(), tr("Image Files (*.png *.jpg *.bmp)"));
+    if (filename.isEmpty())
+        return;
 
     QImage image = QImage(filename);
     if (image.isNull()) {
-        QMessageBox::warning(this, tr("Open Silouette Image"), tr("The image couldn't be opened."));
+        QMessageBox::warning(this, tr("Open Shadow Image"), tr("Error opening image!"));
     } else {
         // Put the image at the bottom of a square image
         setSilouette(image);
@@ -72,7 +81,10 @@ void MainWindow::on_actionSave_obstruction_triggered()
 {
     QString filename = QFileDialog::getSaveFileName(this,
           tr("Save Obstruction Image"), QString(), tr("Image Files (*.png *.jpg *.bmp)"));
-
+    if (!filename.isEmpty()) {
+        if (!obstructionImage_.save(filename))
+            QMessageBox::warning(this, tr("Save Obstruction Image"), tr("Error saving image!"));
+    }
 }
 
 void MainWindow::recalculate()
@@ -86,6 +98,7 @@ void MainWindow::recalculate()
         }
     }
 
+    obstructionImage_ = obstruction;
     ui->obstructionImage->setPixmap(QPixmap::fromImage(obstruction));
     ui->obstructionWidthLabel->setText(tr("%1cm").arg(obstructionWidthCm_));
     ui->obstructionHeightLabel->setText(tr("%1cm").arg(obstructionHeightCm_));
@@ -101,6 +114,9 @@ bool MainWindow::calculatePixel(int x, int y)
     double slopex = (obXCm - lightXCm_) / obstructionZCm_;
     double slopey = (obYCm - lightYCm_) / obstructionZCm_;
 
+    if (slopex == 0 || slopey == 0)
+        return false;
+
     // Calculate where the light ray hits the wall
     double wallZCm = -lightXCm_ / slopex;
     double wallYCm = -lightYCm_ / slopey;
@@ -112,14 +128,17 @@ bool MainWindow::calculatePixel(int x, int y)
         return false;
 
     double pictureYCm = shadowYCm_ - wallYCm;
-    if (pictureYCm < 0 || pictureYCm >= shadowHeightCm_)
+    if (pictureYCm <= 0 || pictureYCm > shadowHeightCm_)
         return false;
 
     // Point sample...
-    int picturePixelX = (int) floor(pictureXCm / shadowWidthCm_ * silouetteImage_.width());
-    int picturePixelY = silouetteImage_.height() - (int) ceil(pictureYCm / shadowHeightCm_ * silouetteImage_.height());
+    int picturePixelX = (int) floor(pictureXCm / shadowWidthCm_ * shadowImage_.width());
+    int picturePixelY = shadowImage_.height() - (int) ceil(pictureYCm / shadowHeightCm_ * shadowImage_.height());
 
-    QRgb color = silouetteImage_.pixel(picturePixelX, picturePixelY);
+    if (picturePixelX >= shadowImage_.width() || picturePixelY >= shadowImage_.height() || picturePixelX < 0 || picturePixelY < 0)
+        qDebug("oops");
+
+    QRgb color = shadowImage_.pixel(picturePixelX, picturePixelY);
     if (qAlpha(color) > 128 && qGreen(color) < 128)
         return true;
     else
@@ -128,6 +147,41 @@ bool MainWindow::calculatePixel(int x, int y)
 
 void MainWindow::shadowSizeChanged(double v)
 {
+    double oldSize = shadowWidthCm_;
+
     shadowHeightCm_ = shadowWidthCm_ = v;
+    shadowZCm_ = obstructionZCm_ - oldSize + shadowWidthCm_ + ui->shadowOffsetFromObstructionDoubleSpinBox->value();
+
+    recalculate();
+}
+
+void MainWindow::obstructionSizeChanged(double v)
+{
+    obstructionHeightCm_ = obstructionWidthCm_ = v;
+    recalculate();
+}
+
+void MainWindow::lightDistanceFromWallChanged(double v)
+{
+    lightXCm_ = v;
+    recalculate();
+}
+
+void MainWindow::lightHeightChanged(double v)
+{
+    lightYCm_ = v;
+    recalculate();
+}
+
+void MainWindow::shadowHeightOffsetChanged(double v)
+{
+    shadowYCm_ = v;
+    recalculate();
+}
+
+void MainWindow::shadowWallOffsetChanged(double v)
+{
+    double oldOffset = shadowZCm_ - shadowWidthCm_ - obstructionZCm_;
+    shadowZCm_ += v - oldOffset;
     recalculate();
 }
