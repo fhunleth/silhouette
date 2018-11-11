@@ -17,14 +17,16 @@ public:
 
 private slots:
     void on_actionLoad_image_triggered();
-
     void on_actionSave_obstruction_triggered();
+
     void shadowSizeChanged(double v);
     void obstructionSizeChanged(double v);
     void lightDistanceFromWallChanged(double v);
     void lightHeightChanged(double v);
     void shadowHeightOffsetChanged(double v);
     void shadowWallOffsetChanged(double v);
+    void lightObstructionDistanceChanged(double v);
+
 private:
     void recalculate();
 

@@ -5,19 +5,21 @@
 #include <QPainter>
 #include "math.h"
 
+#define OBSTRUCTION_RES 4096
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    obstructionResolutionWidth_(1024),
-    obstructionResolutionHeight_(1024),
-    obstructionWidthCm_(10),
-    obstructionHeightCm_(10),
-    obstructionZCm_(20),
+    obstructionResolutionWidth_(OBSTRUCTION_RES),
+    obstructionResolutionHeight_(OBSTRUCTION_RES),
+    obstructionWidthCm_(30),
+    obstructionHeightCm_(30),
+    obstructionZCm_(10),
 
-    lightXCm_(5),
-    lightYCm_(3),
+    lightXCm_(19.5),
+    lightYCm_(2),
 
-    shadowZCm_(120),
+    shadowZCm_(110),
     shadowYCm_(0),
     shadowWidthCm_(100),
     shadowHeightCm_(100)
@@ -31,6 +33,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->lightHeightCmDoubleSpinBox->setValue(lightYCm_);
     ui->shadowHeightOffsetDoubleSpinBox->setValue(shadowYCm_);
     ui->shadowOffsetFromObstructionDoubleSpinBox->setValue(shadowZCm_ - shadowWidthCm_ - obstructionZCm_);
+    ui->distanceBetweenLightAndObstructionDoubleSpinBox->setValue(obstructionZCm_);
 
     connect(ui->silhouetteSizeCmDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(shadowSizeChanged(double)));
     connect(ui->obstructionSizeCmDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(obstructionSizeChanged(double)));
@@ -38,7 +41,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->lightHeightCmDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(lightHeightChanged(double)));
     connect(ui->shadowHeightOffsetDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(shadowHeightOffsetChanged(double)));
     connect(ui->shadowOffsetFromObstructionDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(shadowWallOffsetChanged(double)));
-
+    connect(ui->distanceBetweenLightAndObstructionDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(lightObstructionDistanceChanged(double)));
     setSilouette(QImage(":res/polar-bear-silhouette.png"));
 }
 
@@ -109,17 +112,18 @@ void MainWindow::recalculate()
 bool MainWindow::calculatePixel(int x, int y)
 {
     double obXCm = x * obstructionWidthCm_ / obstructionResolutionWidth_;
-    double obYCm = y * obstructionHeightCm_ / obstructionResolutionHeight_;
+    double obYCm = (obstructionResolutionHeight_ - 1 - y) * obstructionHeightCm_ / obstructionResolutionHeight_;
 
     double slopex = (obXCm - lightXCm_) / obstructionZCm_;
     double slopey = (obYCm - lightYCm_) / obstructionZCm_;
 
-    if (slopex == 0 || slopey == 0)
+    // If the light never hits the wall, then don't bother calculating the intersection
+    if (slopex >= 0.0)
         return false;
 
-    // Calculate where the light ray hits the wall
+    // Calculate where the light ray hits the wall (x=0)
     double wallZCm = -lightXCm_ / slopex;
-    double wallYCm = -lightYCm_ / slopey;
+    double wallYCm = lightYCm_ + wallZCm * slopey;
 
     // Calculate where the light ray hits in the image
     // We're choosing the bottom-left of the image to be (0, 0)
@@ -127,7 +131,7 @@ bool MainWindow::calculatePixel(int x, int y)
     if (pictureXCm < 0 || pictureXCm >= shadowWidthCm_)
         return false;
 
-    double pictureYCm = shadowYCm_ - wallYCm;
+    double pictureYCm = wallYCm - shadowYCm_;
     if (pictureYCm <= 0 || pictureYCm > shadowHeightCm_)
         return false;
 
@@ -139,9 +143,10 @@ bool MainWindow::calculatePixel(int x, int y)
         qDebug("oops");
 
     QRgb color = shadowImage_.pixel(picturePixelX, picturePixelY);
-    if (qAlpha(color) > 128 && qGreen(color) < 128)
+    if (qAlpha(color) > 128 && qGreen(color) < 128) {
+      //  qDebug("%f, %f", obXCm, obYCm);
         return true;
-    else
+    } else
         return false;
 }
 
@@ -183,5 +188,13 @@ void MainWindow::shadowWallOffsetChanged(double v)
 {
     double oldOffset = shadowZCm_ - shadowWidthCm_ - obstructionZCm_;
     shadowZCm_ += v - oldOffset;
+    recalculate();
+}
+
+void MainWindow::lightObstructionDistanceChanged(double v)
+{
+    double offset = shadowZCm_ - shadowWidthCm_ - obstructionZCm_;
+    obstructionZCm_ = v;
+    shadowZCm_ = shadowWidthCm_ + obstructionZCm_ + offset;
     recalculate();
 }
