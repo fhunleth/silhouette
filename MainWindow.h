@@ -19,6 +19,7 @@ private slots:
     void on_actionLoad_image_triggered();
 
     void on_actionSave_obstruction_triggered();
+    void shadowSizeChanged(double v);
 private:
     void recalculate();
 
@@ -36,10 +37,10 @@ private:
     double lightXCm_;
     double lightYCm_;
 
-    double silouetteZCm_;
-    double silouetteYCm_;
-    double silouetteWidthCm_;
-    double silouetteHeightCm_;
+    double shadowZCm_;
+    double shadowYCm_;
+    double shadowWidthCm_;
+    double shadowHeightCm_;
 
     bool calculatePixel(int x, int y);
     void setSilouette(const QImage &image);

@@ -17,14 +17,20 @@ MainWindow::MainWindow(QWidget *parent) :
     lightXCm_(5),
     lightYCm_(3),
 
-    silouetteZCm_(120),
-    silouetteYCm_(0),
-    silouetteWidthCm_(100),
-    silouetteHeightCm_(100)
+    shadowZCm_(120),
+    shadowYCm_(0),
+    shadowWidthCm_(100),
+    shadowHeightCm_(100)
 
 {
     ui->setupUi(this);
     connect(ui->actionQuit, SIGNAL(triggered()), SLOT(close()));
+    ui->silhouetteSizeCmDoubleSpinBox->setValue(shadowHeightCm_);
+    ui->obstructionSizeCmDoubleSpinBox->setValue(obstructionHeightCm_);
+    ui->lightDistanceFromWallCmDoubleSpinBox->setValue(lightXCm_);
+    ui->lightHeightCmDoubleSpinBox->setValue(lightYCm_);
+
+    connect(ui->silhouetteSizeCmDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(shadowSizeChanged(double)));
 
     setSilouette(QImage(":res/polar-bear-silhouette.png"));
 }
@@ -81,6 +87,10 @@ void MainWindow::recalculate()
     }
 
     ui->obstructionImage->setPixmap(QPixmap::fromImage(obstruction));
+    ui->obstructionWidthLabel->setText(tr("%1cm").arg(obstructionWidthCm_));
+    ui->obstructionHeightLabel->setText(tr("%1cm").arg(obstructionHeightCm_));
+    ui->silhouetteWidthLabel->setText(tr("%1cm").arg(shadowWidthCm_));
+    ui->silhouetteHeightLabel->setText(tr("%1cm").arg(shadowHeightCm_));
 }
 
 bool MainWindow::calculatePixel(int x, int y)
@@ -97,21 +107,27 @@ bool MainWindow::calculatePixel(int x, int y)
 
     // Calculate where the light ray hits in the image
     // We're choosing the bottom-left of the image to be (0, 0)
-    double pictureXCm = silouetteZCm_ - wallZCm;
-    if (pictureXCm < 0 || pictureXCm >= silouetteWidthCm_)
+    double pictureXCm = shadowZCm_ - wallZCm;
+    if (pictureXCm < 0 || pictureXCm >= shadowWidthCm_)
         return false;
 
-    double pictureYCm = silouetteYCm_ - wallYCm;
-    if (pictureYCm < 0 || pictureYCm >= silouetteHeightCm_)
+    double pictureYCm = shadowYCm_ - wallYCm;
+    if (pictureYCm < 0 || pictureYCm >= shadowHeightCm_)
         return false;
 
     // Point sample...
-    int picturePixelX = (int) floor(pictureXCm / silouetteWidthCm_ * silouetteImage_.width());
-    int picturePixelY = silouetteImage_.height() - (int) ceil(pictureYCm / silouetteHeightCm_ * silouetteImage_.height());
+    int picturePixelX = (int) floor(pictureXCm / shadowWidthCm_ * silouetteImage_.width());
+    int picturePixelY = silouetteImage_.height() - (int) ceil(pictureYCm / shadowHeightCm_ * silouetteImage_.height());
 
     QRgb color = silouetteImage_.pixel(picturePixelX, picturePixelY);
     if (qAlpha(color) > 128 && qGreen(color) < 128)
         return true;
     else
         return false;
+}
+
+void MainWindow::shadowSizeChanged(double v)
+{
+    shadowHeightCm_ = shadowWidthCm_ = v;
+    recalculate();
 }
