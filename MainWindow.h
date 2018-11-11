@@ -42,6 +42,7 @@ private:
     double silouetteHeightCm_;
 
     bool calculatePixel(int x, int y);
+    void setSilouette(const QImage &image);
 };
 
 #endif // MAINWINDOW_H

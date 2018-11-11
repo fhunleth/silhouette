@@ -2,6 +2,8 @@
 #include "ui_MainWindow.h"
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QPainter>
+#include "math.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -15,23 +17,35 @@ MainWindow::MainWindow(QWidget *parent) :
     lightXCm_(5),
     lightYCm_(3),
 
-    silouetteZCm_(45),
+    silouetteZCm_(120),
     silouetteYCm_(0),
-    silouetteWidthCm_(25),
-    silouetteHeightCm_(25)
+    silouetteWidthCm_(100),
+    silouetteHeightCm_(100)
 
 {
     ui->setupUi(this);
     connect(ui->actionQuit, SIGNAL(triggered()), SLOT(close()));
 
-    silouetteImage_ = QImage(":res/polar-bear-silhouette.png");
-    ui->silhouetteImage->setPixmap(QPixmap::fromImage(silouetteImage_));
-    recalculate();
+    setSilouette(QImage(":res/polar-bear-silhouette.png"));
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::setSilouette(const QImage &image)
+{
+    int side = qMax(image.width(), image.height());
+    QImage squareImage(side, side, QImage::Format_ARGB32);
+    QPainter p(&squareImage);
+    p.fillRect(0, 0, side, side, Qt::white);
+    p.drawImage((side - image.width()) / 2, side - image.height(), image);
+    p.end();
+
+    silouetteImage_ = squareImage;
+    ui->silhouetteImage->setPixmap(QPixmap::fromImage(silouetteImage_));
+    recalculate();
 }
 
 void MainWindow::on_actionLoad_image_triggered()
@@ -43,9 +57,8 @@ void MainWindow::on_actionLoad_image_triggered()
     if (image.isNull()) {
         QMessageBox::warning(this, tr("Open Silouette Image"), tr("The image couldn't be opened."));
     } else {
-        silouetteImage_ = image;
-        ui->silhouetteImage->setPixmap(QPixmap::fromImage(silouetteImage_));
-        recalculate();
+        // Put the image at the bottom of a square image
+        setSilouette(image);
     }
 }
 
@@ -85,19 +98,19 @@ bool MainWindow::calculatePixel(int x, int y)
     // Calculate where the light ray hits in the image
     // We're choosing the bottom-left of the image to be (0, 0)
     double pictureXCm = silouetteZCm_ - wallZCm;
-    if (pictureXCm < 0 || pictureXCm > silouetteWidthCm_)
+    if (pictureXCm < 0 || pictureXCm >= silouetteWidthCm_)
         return false;
 
     double pictureYCm = silouetteYCm_ - wallYCm;
-    if (pictureYCm < 0 || pictureYCm > silouetteHeightCm_)
+    if (pictureYCm < 0 || pictureYCm >= silouetteHeightCm_)
         return false;
 
     // Point sample...
-    int picturePixelX = qRound(pictureXCm / silouetteWidthCm_ * silouetteImage_.width());
-    int picturePixelY = silouetteImage_.height() - qRound(pictureYCm / silouetteHeightCm_ * silouetteImage_.height());
+    int picturePixelX = (int) floor(pictureXCm / silouetteWidthCm_ * silouetteImage_.width());
+    int picturePixelY = silouetteImage_.height() - (int) ceil(pictureYCm / silouetteHeightCm_ * silouetteImage_.height());
 
     QRgb color = silouetteImage_.pixel(picturePixelX, picturePixelY);
-    if (qGreen(color) < 128)
+    if (qAlpha(color) > 128 && qGreen(color) < 128)
         return true;
     else
         return false;
