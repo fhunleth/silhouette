@@ -50,6 +50,10 @@ private:
     double shadowWidthCm_;
     double shadowHeightCm_;
 
+    // In shadow coordinates (lower left is (0, 0))
+    double obstructionCenterXCm_;
+    double obstructionCenterYCm_;
+
     bool calculatePixel(int x, int y);
     void setSilouette(const QImage &image);
 };

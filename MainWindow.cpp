@@ -5,7 +5,7 @@
 #include <QPainter>
 #include "math.h"
 
-#define OBSTRUCTION_RES 4096
+#define OBSTRUCTION_RES 1024
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -93,13 +93,33 @@ void MainWindow::on_actionSave_obstruction_triggered()
 void MainWindow::recalculate()
 {
     QImage obstruction(obstructionResolutionWidth_, obstructionResolutionHeight_, QImage::Format_ARGB32);
+    int sumx = 0;
+    int sumy = 0;
+    int pixelCount = 0;
 
     for (int y = 0; y < obstructionResolutionHeight_; y++) {
         for (int x = 0; x < obstructionResolutionWidth_; x++) {
             bool isOn = calculatePixel(x, y);
-            obstruction.setPixelColor(x, y, isOn ? Qt::black : Qt::white);
+            if (isOn) {
+                obstruction.setPixelColor(x, y, Qt::black);
+                sumx += x;
+                sumy += y;
+                pixelCount++;
+            } else {
+                obstruction.setPixelColor(x, y, Qt::white);
+            }
         }
     }
+
+    if (pixelCount > 0) {
+        obstructionCenterXCm_ = obstructionWidthCm_ / obstructionResolutionWidth_ * sumx / pixelCount;
+        obstructionCenterYCm_ = obstructionHeightCm_ / obstructionResolutionHeight_ * (obstructionResolutionHeight_ - ((double) sumy / pixelCount));
+    } else {
+        obstructionCenterXCm_ = 0;
+        obstructionCenterYCm_ = 0;
+    }
+
+    ui->shadowInfoLabel->setText(tr("Obstruction: Center of Mass is (%1 cm, %2 cm)").arg(obstructionCenterXCm_).arg(obstructionCenterYCm_));
 
     obstructionImage_ = obstruction;
     ui->obstructionImage->setPixmap(QPixmap::fromImage(obstruction));
@@ -152,10 +172,8 @@ bool MainWindow::calculatePixel(int x, int y)
 
 void MainWindow::shadowSizeChanged(double v)
 {
-    double oldSize = shadowWidthCm_;
-
     shadowHeightCm_ = shadowWidthCm_ = v;
-    shadowZCm_ = obstructionZCm_ - oldSize + shadowWidthCm_ + ui->shadowOffsetFromObstructionDoubleSpinBox->value();
+    shadowZCm_ = obstructionZCm_ + shadowWidthCm_ + ui->shadowOffsetFromObstructionDoubleSpinBox->value();
 
     recalculate();
 }
