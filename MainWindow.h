@@ -55,6 +55,8 @@ private:
     // In shadow coordinates (lower left is (0, 0))
     double obstructionCenterXCm_;
     double obstructionCenterYCm_;
+    double lightPitchAngle_;
+    double lightYawAngle_;
 
     bool addPedestal_;
 

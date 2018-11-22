@@ -103,6 +103,14 @@ static double sq(double x)
     return x * x;
 }
 
+static double calculateAngle(double x1, double y1, double z1, double x2, double y2, double z2)
+{
+    double dotProduct = x1*x2 + y1*y2 + z1*z2;
+    double magnitudeLT = sqrt(sq(x1) + sq(y1) + sq(z1));
+    double magnitudeRB = sqrt(sq(x2) + sq(y2) + sq(z2));
+    return acos(dotProduct / (magnitudeLT*magnitudeRB)) * 180.0 / M_PI;
+}
+
 void MainWindow::recalculate()
 {
     QImage obstruction(obstructionResolutionWidth_, obstructionResolutionHeight_, QImage::Format_ARGB32);
@@ -144,11 +152,16 @@ void MainWindow::recalculate()
 
         // calculate the angle between the lines that start at the light and go to (left, top) and (right, bottom)
         // if light->(left,top) is a and light->(right,bottom) is b, then cos θ = a·b/|a||b|
+        obstructionLightAngle_ = calculateAngle(left - lightXCm_, top - lightYCm_, obstructionZCm_,
+                                                right - lightXCm_, bottom - lightYCm_, obstructionZCm_);
 
-        double dotProduct = (left - lightXCm_)*(right - lightXCm_) + (top-lightYCm_)*(bottom-lightYCm_) + (obstructionZCm_*obstructionZCm_);
-        double magnitudeLT = sqrt(sq(left - lightXCm_) + sq(top-lightYCm_) + sq(obstructionZCm_));
-        double magnitudeRB = sqrt(sq(right - lightXCm_) + sq(bottom-lightYCm_) + sq(obstructionZCm_));
-        obstructionLightAngle_ = acos(dotProduct / (magnitudeLT*magnitudeRB)) * 180.0 / M_PI;
+        lightPitchAngle_ = calculateAngle(obstructionCenterXCm_ - lightXCm_, obstructionCenterYCm_ - lightYCm_, obstructionZCm_,
+                                          obstructionCenterXCm_ - lightXCm_, 0, obstructionZCm_);
+        if (obstructionCenterYCm_ < lightYCm_)
+            lightPitchAngle_ = -lightPitchAngle_;
+
+        lightYawAngle_ = calculateAngle(obstructionCenterXCm_ - lightXCm_, 0, obstructionZCm_,
+                                        0, 0, obstructionZCm_);
 
         if (addPedestal_) {
             obstruction.setPixelColor(0, 0, Qt::black);
@@ -160,12 +173,16 @@ void MainWindow::recalculate()
         obstructionCenterXCm_ = 0;
         obstructionCenterYCm_ = 0;
         obstructionLightAngle_ = 0;
+        lightPitchAngle_ = 0;
+        lightYawAngle_ = 0;
     }
 
-    ui->shadowInfoLabel->setText(tr("Obstruction: Center of Mass is (%1 cm, %2 cm), Minimum light diameter is %3°")
+    ui->shadowInfoLabel->setText(tr("Obstruction: Center is (%1 cm, %2 cm), Min LED \"viewing\" angle is %3°, LED pitch %4°, LED yaw %5°")
                                  .arg(obstructionCenterXCm_, 0, 'f', 1)
                                  .arg(obstructionCenterYCm_, 0, 'f', 1)
-                                 .arg(obstructionLightAngle_, 0, 'f', 1));
+                                 .arg(obstructionLightAngle_ / 2.0, 0, 'f', 1)
+                                 .arg(lightPitchAngle_, 0, 'f', 1)
+                                 .arg(lightYawAngle_, 0, 'f', 1));
 
     obstructionImage_ = obstruction;
     ui->obstructionImage->setPixmap(QPixmap::fromImage(obstruction));
