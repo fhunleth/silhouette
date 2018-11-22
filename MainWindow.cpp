@@ -90,12 +90,22 @@ void MainWindow::on_actionSave_obstruction_triggered()
     }
 }
 
+static double sq(double x)
+{
+    return x * x;
+}
+
 void MainWindow::recalculate()
 {
     QImage obstruction(obstructionResolutionWidth_, obstructionResolutionHeight_, QImage::Format_ARGB32);
     int sumx = 0;
     int sumy = 0;
     int pixelCount = 0;
+
+    int minx = obstructionResolutionWidth_;
+    int miny = obstructionResolutionHeight_;
+    int maxx = 0;
+    int maxy = 0;
 
     for (int y = 0; y < obstructionResolutionHeight_; y++) {
         for (int x = 0; x < obstructionResolutionWidth_; x++) {
@@ -105,6 +115,10 @@ void MainWindow::recalculate()
                 sumx += x;
                 sumy += y;
                 pixelCount++;
+                maxx = qMax(maxx, x);
+                maxy = qMax(maxy, y);
+                minx = qMin(minx, x);
+                miny = qMin(miny, y);
             } else {
                 obstruction.setPixelColor(x, y, Qt::white);
             }
@@ -114,12 +128,29 @@ void MainWindow::recalculate()
     if (pixelCount > 0) {
         obstructionCenterXCm_ = obstructionWidthCm_ / obstructionResolutionWidth_ * sumx / pixelCount;
         obstructionCenterYCm_ = obstructionHeightCm_ / obstructionResolutionHeight_ * (obstructionResolutionHeight_ - ((double) sumy / pixelCount));
+
+        double left = obstructionWidthCm_ / obstructionResolutionWidth_ * minx;
+        double right = obstructionWidthCm_ / obstructionResolutionWidth_ * maxx;
+        double top = obstructionHeightCm_ / obstructionResolutionHeight_ * (obstructionResolutionHeight_ - miny);
+        double bottom = obstructionHeightCm_ / obstructionResolutionHeight_ * (obstructionResolutionHeight_ - maxy);
+
+        // calculate the angle between the lines that start at the light and go to (left, top) and (right, bottom)
+        // if light->(left,top) is a and light->(right,bottom) is b, then cos θ = a·b/|a||b|
+
+        double dotProduct = (left - lightXCm_)*(right - lightXCm_) + (top-lightYCm_)*(bottom-lightYCm_) + (obstructionZCm_*obstructionZCm_);
+        double magnitudeLT = sqrt(sq(left - lightXCm_) + sq(top-lightYCm_) + sq(obstructionZCm_));
+        double magnitudeRB = sqrt(sq(right - lightXCm_) + sq(bottom-lightYCm_) + sq(obstructionZCm_));
+        obstructionLightAngle_ = acos(dotProduct / (magnitudeLT*magnitudeRB)) * 180.0 / M_PI;
     } else {
         obstructionCenterXCm_ = 0;
         obstructionCenterYCm_ = 0;
+        obstructionLightAngle_ = 0;
     }
 
-    ui->shadowInfoLabel->setText(tr("Obstruction: Center of Mass is (%1 cm, %2 cm)").arg(obstructionCenterXCm_).arg(obstructionCenterYCm_));
+    ui->shadowInfoLabel->setText(tr("Obstruction: Center of Mass is (%1 cm, %2 cm), Minimum light diameter is %3°")
+                                 .arg(obstructionCenterXCm_, 0, 'f', 1)
+                                 .arg(obstructionCenterYCm_, 0, 'f', 1)
+                                 .arg(obstructionLightAngle_, 0, 'f', 1));
 
     obstructionImage_ = obstruction;
     ui->obstructionImage->setPixmap(QPixmap::fromImage(obstruction));

@@ -41,6 +41,7 @@ private:
     double obstructionWidthCm_;
     double obstructionHeightCm_;
     double obstructionZCm_;
+    double obstructionLightAngle_;
 
     double lightXCm_;
     double lightYCm_;
