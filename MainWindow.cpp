@@ -55,11 +55,16 @@ MainWindow::~MainWindow()
 
 void MainWindow::setSilouette(const QImage &image)
 {
-    int side = qMax(image.width(), image.height());
+    double sizeMultiplier = 8;
+    int side = qRound(qMax(image.width(), image.height()) * sizeMultiplier);
     QImage squareImage(side, side, QImage::Format_ARGB32);
     QPainter p(&squareImage);
+    p.setRenderHint(QPainter::SmoothPixmapTransform, true);
+    p.setRenderHint(QPainter::Antialiasing, true);
     p.fillRect(0, 0, side, side, Qt::white);
-    p.drawImage((side - image.width()) / 2, side - image.height(), image);
+    QRectF target((side - sizeMultiplier *image.width()) / 2,  side - sizeMultiplier *image.height(), sizeMultiplier *image.width(), sizeMultiplier *image.height());
+    QRectF source(0, 0, image.width(), image.height());
+    p.drawImage(target, image, source);
     p.end();
 
     shadowImage_ = squareImage;
