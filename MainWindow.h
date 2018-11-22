@@ -27,6 +27,7 @@ private slots:
     void shadowWallOffsetChanged(double v);
     void lightObstructionDistanceChanged(double v);
 
+    void addPedestalChanged(int);
 private:
     void recalculate();
 
@@ -54,6 +55,8 @@ private:
     // In shadow coordinates (lower left is (0, 0))
     double obstructionCenterXCm_;
     double obstructionCenterYCm_;
+
+    bool addPedestal_;
 
     bool calculatePixel(int x, int y);
     void setSilouette(const QImage &image);

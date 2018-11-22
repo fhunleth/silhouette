@@ -5,7 +5,7 @@
 #include <QPainter>
 #include "math.h"
 
-#define OBSTRUCTION_RES 1024
+#define OBSTRUCTION_RES 4096
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -22,8 +22,9 @@ MainWindow::MainWindow(QWidget *parent) :
     shadowZCm_(110),
     shadowYCm_(0),
     shadowWidthCm_(100),
-    shadowHeightCm_(100)
+    shadowHeightCm_(100),
 
+    addPedestal_(false)
 {
     ui->setupUi(this);
     connect(ui->actionQuit, SIGNAL(triggered()), SLOT(close()));
@@ -42,6 +43,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->shadowHeightOffsetDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(shadowHeightOffsetChanged(double)));
     connect(ui->shadowOffsetFromObstructionDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(shadowWallOffsetChanged(double)));
     connect(ui->distanceBetweenLightAndObstructionDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(lightObstructionDistanceChanged(double)));
+    connect(ui->addPedestalAndDotCheckBox, SIGNAL(stateChanged(int)), SLOT(addPedestalChanged(int)));
+
     setSilouette(QImage(":res/polar-bear-silhouette.png"));
 }
 
@@ -141,6 +144,13 @@ void MainWindow::recalculate()
         double magnitudeLT = sqrt(sq(left - lightXCm_) + sq(top-lightYCm_) + sq(obstructionZCm_));
         double magnitudeRB = sqrt(sq(right - lightXCm_) + sq(bottom-lightYCm_) + sq(obstructionZCm_));
         obstructionLightAngle_ = acos(dotProduct / (magnitudeLT*magnitudeRB)) * 180.0 / M_PI;
+
+        if (addPedestal_) {
+            obstruction.setPixelColor(0, 0, Qt::black);
+
+            QPainter p(&obstruction);
+            p.fillRect(0, maxy - 4, maxx, obstructionResolutionHeight_, Qt::black);
+        }
     } else {
         obstructionCenterXCm_ = 0;
         obstructionCenterYCm_ = 0;
@@ -245,5 +255,11 @@ void MainWindow::lightObstructionDistanceChanged(double v)
     double offset = shadowZCm_ - shadowWidthCm_ - obstructionZCm_;
     obstructionZCm_ = v;
     shadowZCm_ = shadowWidthCm_ + obstructionZCm_ + offset;
+    recalculate();
+}
+
+void MainWindow::addPedestalChanged(int)
+{
+    addPedestal_ = ui->addPedestalAndDotCheckBox->isChecked();
     recalculate();
 }
