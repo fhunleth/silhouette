@@ -24,7 +24,8 @@ MainWindow::MainWindow(QWidget *parent) :
     shadowWidthCm_(100),
     shadowHeightCm_(100),
 
-    addPedestal_(false)
+    addPedestal_(false),
+    mirrorSilhouette_(false)
 {
     ui->setupUi(this);
     connect(ui->actionQuit, SIGNAL(triggered()), SLOT(close()));
@@ -44,6 +45,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->shadowOffsetFromObstructionDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(shadowWallOffsetChanged(double)));
     connect(ui->distanceBetweenLightAndObstructionDoubleSpinBox, SIGNAL(valueChanged(double)), SLOT(lightObstructionDistanceChanged(double)));
     connect(ui->addPedestalAndDotCheckBox, SIGNAL(stateChanged(int)), SLOT(addPedestalChanged(int)));
+    connect(ui->mirrorSilhouetteCheckBox, SIGNAL(stateChanged(int)), SLOT(mirrorSilhouetteChanged(int)));
 
     setSilouette(QImage(":res/polar-bear-silhouette.png"));
 }
@@ -67,7 +69,12 @@ void MainWindow::setSilouette(const QImage &image)
     p.drawImage(target, image, source);
     p.end();
 
-    shadowImage_ = squareImage;
+    originalShadowImage_ = squareImage;
+    if (mirrorSilhouette_)
+        shadowImage_ = originalShadowImage_.mirrored(true, false);
+    else
+        shadowImage_ = originalShadowImage_;
+
     ui->silhouetteImage->setPixmap(QPixmap::fromImage(shadowImage_));
     recalculate();
 }
@@ -283,5 +290,17 @@ void MainWindow::lightObstructionDistanceChanged(double v)
 void MainWindow::addPedestalChanged(int)
 {
     addPedestal_ = ui->addPedestalAndDotCheckBox->isChecked();
+    recalculate();
+}
+
+void MainWindow::mirrorSilhouetteChanged(int)
+{
+    mirrorSilhouette_ = ui->mirrorSilhouetteCheckBox->isChecked();
+    if (mirrorSilhouette_)
+        shadowImage_ = originalShadowImage_.mirrored(true, false);
+    else
+        shadowImage_ = originalShadowImage_;
+
+    ui->silhouetteImage->setPixmap(QPixmap::fromImage(shadowImage_));
     recalculate();
 }

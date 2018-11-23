@@ -28,12 +28,14 @@ private slots:
     void lightObstructionDistanceChanged(double v);
 
     void addPedestalChanged(int);
+    void mirrorSilhouetteChanged(int);
 private:
     void recalculate();
 
 private:
     Ui::MainWindow *ui;
 
+    QImage originalShadowImage_;
     QImage shadowImage_;
     QImage obstructionImage_;
 
@@ -59,6 +61,7 @@ private:
     double lightYawAngle_;
 
     bool addPedestal_;
+    bool mirrorSilhouette_;
 
     bool calculatePixel(int x, int y);
     void setSilouette(const QImage &image);

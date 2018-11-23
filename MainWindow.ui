@@ -276,6 +276,16 @@
         <item row="7" column="1">
          <widget class="QCheckBox" name="addPedestalAndDotCheckBox"/>
         </item>
+        <item row="8" column="0">
+         <widget class="QLabel" name="mirrorSilhouetteLabel">
+          <property name="text">
+           <string>Mirror silhouette</string>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="1">
+         <widget class="QCheckBox" name="mirrorSilhouetteCheckBox"/>
+        </item>
        </layout>
       </item>
       <item>
