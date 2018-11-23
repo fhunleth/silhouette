@@ -3,6 +3,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QPainter>
+#include <QStandardPaths>
 #include "math.h"
 
 #define OBSTRUCTION_RES 4096
@@ -79,10 +80,16 @@ void MainWindow::setSilouette(const QImage &image)
     recalculate();
 }
 
+static QString getHomeDir()
+{
+    QStringList homeLocations = QStandardPaths::standardLocations(QStandardPaths::HomeLocation);
+    return homeLocations.isEmpty() ? QString() : homeLocations.at(0);
+}
+
 void MainWindow::on_actionLoad_image_triggered()
 {
     QString filename = QFileDialog::getOpenFileName(this,
-          tr("Open Shadow Image"), QString(), tr("Image Files (*.png *.jpg *.bmp)"));
+          tr("Open Shadow Image"), getHomeDir(), tr("Image Files (*.png *.jpg *.bmp)"));
     if (filename.isEmpty())
         return;
 
@@ -98,7 +105,7 @@ void MainWindow::on_actionLoad_image_triggered()
 void MainWindow::on_actionSave_obstruction_triggered()
 {
     QString filename = QFileDialog::getSaveFileName(this,
-          tr("Save Obstruction Image"), QString(), tr("Image Files (*.png *.jpg *.bmp)"));
+          tr("Save Obstruction Image"), getHomeDir(), tr("Image Files (*.png *.jpg *.bmp)"));
     if (!filename.isEmpty()) {
         if (!obstructionImage_.save(filename))
             QMessageBox::warning(this, tr("Save Obstruction Image"), tr("Error saving image!"));
