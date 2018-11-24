@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>751</width>
-    <height>585</height>
+    <height>635</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -327,6 +327,7 @@
     </property>
     <addaction name="actionLoad_image"/>
     <addaction name="actionSave_obstruction"/>
+    <addaction name="actionSave_obstruction_to_dxf"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -344,7 +345,12 @@
   </action>
   <action name="actionSave_obstruction">
    <property name="text">
-    <string>Save obstruction...</string>
+    <string>Save obstruction to png...</string>
+   </property>
+  </action>
+  <action name="actionSave_obstruction_to_dxf">
+   <property name="text">
+    <string>Save obstruction to dxf...</string>
    </property>
   </action>
  </widget>

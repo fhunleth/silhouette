@@ -29,6 +29,7 @@ private slots:
 
     void addPedestalChanged(int);
     void mirrorSilhouetteChanged(int);
+    void on_actionSave_obstruction_to_dxf_triggered();
 private:
     void recalculate();
 

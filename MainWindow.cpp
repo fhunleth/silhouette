@@ -4,6 +4,10 @@
 #include <QMessageBox>
 #include <QPainter>
 #include <QStandardPaths>
+#include <QProcess>
+#include <QTemporaryFile>
+#include <QDebug>
+
 #include "math.h"
 
 #define OBSTRUCTION_RES 4096
@@ -105,10 +109,41 @@ void MainWindow::on_actionLoad_image_triggered()
 void MainWindow::on_actionSave_obstruction_triggered()
 {
     QString filename = QFileDialog::getSaveFileName(this,
-          tr("Save Obstruction Image"), getHomeDir(), tr("Image Files (*.png *.jpg *.bmp)"));
+          tr("Save Obstruction Image"), getHomeDir(), tr("Image Files (*.png)"));
     if (!filename.isEmpty()) {
         if (!obstructionImage_.save(filename))
             QMessageBox::warning(this, tr("Save Obstruction Image"), tr("Error saving image!"));
+    }
+}
+
+void MainWindow::on_actionSave_obstruction_to_dxf_triggered()
+{
+    QString filename = QFileDialog::getSaveFileName(this,
+          tr("Save Obstruction Image"), getHomeDir(), tr("Image Files (*.dxf)"));
+    if (!filename.isEmpty()) {
+        QTemporaryFile tmp;
+        if (!tmp.open() || !obstructionImage_.save(&tmp, "PPM")) {
+            QMessageBox::warning(this, tr("Save Obstruction Image"), tr("Error saving image!"));
+            return;
+        }
+
+        QStringList arguments;
+        arguments << "-o" << filename << "-b" << "dxf"
+                  << "-W" << QString::number(obstructionWidthCm_ * 10, 'f')
+                  << "-H" << QString::number(obstructionHeightCm_ * 10, 'f')
+                  << tmp.fileName();
+        qDebug() << arguments;
+        QProcess potrace;
+        potrace.start("/usr/local/bin/potrace", arguments);
+        if (!potrace.waitForFinished() ||
+                potrace.exitCode() != 0) {
+            qDebug() << potrace.exitCode();
+            qDebug() << potrace.readAllStandardError();
+            qDebug() << potrace.readAllStandardOutput();
+
+            QMessageBox::warning(this, tr("Save Obstruction Image"), tr("Error running potrace!"));
+            return;
+        }
     }
 }
 
